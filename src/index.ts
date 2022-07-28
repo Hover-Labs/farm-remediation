@@ -27,27 +27,15 @@ const calculateAmountOwed = (farmData: FarmStorage, mapEntry: BigMapEntry): BigN
   if (mapEntry.value.lpTokenBalance === "0") {
     return new BigNumber(0)
   }
+  const mantissa = new BigNumber("1000000000000000000000000000000000000")
 
-  const accRewardPerShareStart = mapEntry.value.accumulatedRewardPerShareStart
-  const nextBlock = new BigNumber(REMEDIATION_BLOCK + 1)
-  const multiplier = nextBlock.minus(farmData.farm.lastBlockUpdate)
-  const outstandingReward = multiplier.times(farmData.farm.plannedRewards.rewardPerBlock)
-  const claimedRewards = new BigNumber(farmData.farm.claimedRewards.paid).plus(farmData.farm.claimedRewards.unpaid)
-  const totalRewards = outstandingReward.plus(claimedRewards);
-  const plannedRewards = new BigNumber(farmData.farm.plannedRewards.rewardPerBlock).times(farmData.farm.plannedRewards.totalBlocks)
-  const totalRewardsExhausted = totalRewards.isGreaterThan(plannedRewards);
-  const reward = totalRewardsExhausted
-    ? plannedRewards.minus(claimedRewards)
-    : outstandingReward;
-  const lpMantissa = new BigNumber(10).pow(36)
-  const rewardRatio = reward.times(lpMantissa).div(farmData.farmLpTokenBalance)
-  const accRewardPerShareEnd = new BigNumber(farmData.farm.accumulatedRewardPerShare).plus(rewardRatio)
-  const accumulatedRewardPerShare = BigNumber.max(
-    accRewardPerShareEnd.minus(accRewardPerShareStart),
-    new BigNumber(0)
-  )
-  const estimatedRewards = accumulatedRewardPerShare.times(mapEntry.value.lpTokenBalance).dividedBy(lpMantissa)
-  return estimatedRewards
+  const elapsedBlocks = new BigNumber(REMEDIATION_BLOCK).minus(farmData.farm.lastBlockUpdate)
+  const rewardForElapsedBlocks = elapsedBlocks.times(farmData.farm.plannedRewards.rewardPerBlock)
+
+  const accum = new BigNumber(farmData.farm.accumulatedRewardPerShare).plus(rewardForElapsedBlocks.times(mantissa).dividedToIntegerBy(farmData.farmLpTokenBalance))
+
+  const owed = (accum.minus(mapEntry.value.accumulatedRewardPerShareStart)).times(mapEntry.value.lpTokenBalance).dividedBy(mantissa)
+  return owed
 }
 
 const formatAmount = (input: BigNumber): string => {
@@ -106,7 +94,7 @@ const main = async (contractAddress: string, mapId: string) => {
 // main("KT1HDXjPtjv7Y7XtJxrNc5rNjnegTi2ZzNfv", "7262")
 
 // QLkUSD
-// main("KT18oxtA5uyhyYXyAVhTa7agJmxHCTjHpiF7", "7263")
+main("KT18oxtA5uyhyYXyAVhTa7agJmxHCTjHpiF7", "7263")
 
 // Youves LP
-main("KT1VTA694ZHFQPtxg76HzY7gHdvi7idYEYje", "105534")
+// main("KT1VTA694ZHFQPtxg76HzY7gHdvi7idYEYje", "105534")
