@@ -1,8 +1,17 @@
 import axios from 'axios'
 import { BigMapEntry, FarmStorage, RemediationData } from './types'
 import BigNumber from 'bignumber.js'
+import * as fs from 'fs'
+import { FILENAME, formatAmount } from './utils'
+
+const ADDRESSES_WHO_CLAIMED = [
+  "tz1X2debvxGtmv1px96EHCXZemHFr2kEZner",
+  "tz1QYHEo2phwobtPvcF7mXA1uCDEZ1zcuF7L",
+  "tz1TRrpXyABLU7RfM1fR5AbFM4g3F71KpKVS",
+]
 
 const REMEDIATION_BLOCK = "2568672"
+
 
 const getMapKeys = async (mapId: string): Promise<Array<BigMapEntry>> => {
   const url = `https://api.tzkt.io/v1/bigmaps/${mapId}/historical_keys/${REMEDIATION_BLOCK}?limit=1000`
@@ -38,11 +47,7 @@ const calculateAmountOwed = (farmData: FarmStorage, mapEntry: BigMapEntry): BigN
   return owed
 }
 
-const formatAmount = (input: BigNumber): string => {
-  return input.dividedBy(new BigNumber(10).pow(18)).toFixed(18, BigNumber.ROUND_DOWN)
-}
-
-const main = async (contractAddress: string, mapId: string) => {
+const calculateRemdediations = async (contractAddress: string, mapId: string) => {
   console.log("Calculating Remediation...")
   console.log(`Contract: ${contractAddress}`)
   console.log(`Big Map ID: ${mapId}`)
@@ -71,30 +76,45 @@ const main = async (contractAddress: string, mapId: string) => {
     return !remediation.amount.eq(0)
   })
 
+  // Filter addresses who already claimed
+  const finalClaimsList = nonZeroRemediations.filter((remediation: RemediationData) => {
+    return !ADDRESSES_WHO_CLAIMED.includes(remediation.address)
+  })
+
   // Sum the amount for sanity
-  const totalAmountOwed = nonZeroRemediations.reduce((accumulated: BigNumber, next: RemediationData) => {
+  const totalAmountOwed = finalClaimsList.reduce((accumulated: BigNumber, next: RemediationData) => {
     return accumulated.plus(next.amount)
   }, new BigNumber(0))
 
   // Print
   console.log(`Amounts Owed:`)
   console.log(`===================================`)
-  for (let i = 0; i < nonZeroRemediations.length; i++) {
-    const remediation = nonZeroRemediations[i]
+  for (let i = 0; i < finalClaimsList.length; i++) {
+    const remediation = finalClaimsList[i]
     console.log(`${remediation.address}: ${formatAmount(remediation.amount)} KDAO`)
+
+    fs.appendFileSync(FILENAME, `${remediation.address}, ${remediation.amount.toFixed(0, BigNumber.ROUND_DOWN)}, ${contractAddress}\n`, 'utf-8')
   }
   console.log(`===================================`)
   console.log()
-  console.log(`Number Addresses: ${nonZeroRemediations.length}`)
+  console.log(`Number Addresses: ${finalClaimsList.length}`)
   console.log(`Total Owed: ${formatAmount(totalAmountOwed)}`)
   console.log()
 }
 
-// kUSD
-// main("KT1HDXjPtjv7Y7XtJxrNc5rNjnegTi2ZzNfv", "7262")
+const main = async () => {
+  fs.writeFileSync(FILENAME, '', 'utf-8')
 
-// QLkUSD
-main("KT18oxtA5uyhyYXyAVhTa7agJmxHCTjHpiF7", "7263")
+  // kUSD
+  await calculateRemdediations("KT1HDXjPtjv7Y7XtJxrNc5rNjnegTi2ZzNfv", "7262")
 
-// Youves LP
-// main("KT1VTA694ZHFQPtxg76HzY7gHdvi7idYEYje", "105534")
+  // QLkUSD
+  await calculateRemdediations("KT18oxtA5uyhyYXyAVhTa7agJmxHCTjHpiF7", "7263")
+
+  // Youves LP
+  await calculateRemdediations("KT1VTA694ZHFQPtxg76HzY7gHdvi7idYEYje", "105534")
+
+  console.log(`Wrote data to ${FILENAME}`)
+}
+
+main()

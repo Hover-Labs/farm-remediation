@@ -38,3 +38,10 @@ export type RemediationData = {
   address: string
   amount: BigNumber
 }
+
+/** An airdrop has been completed. */
+export type CompletedAirDrop = {
+  address: string
+  amount: string
+  operationHash: string
+}
