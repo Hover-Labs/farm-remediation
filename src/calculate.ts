@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import { FILENAME, formatAmount } from './utils'
 
 const ADDRESSES_WHO_CLAIMED = [
+  "tz1X2debvxGtmv1px96EHCXZemHFr2kEZner",
   "tz1QYHEo2phwobtPvcF7mXA1uCDEZ1zcuF7L",
   "tz1TRrpXyABLU7RfM1fR5AbFM4g3F71KpKVS",
 ]
