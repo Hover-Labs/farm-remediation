@@ -8,7 +8,7 @@ import { FILENAME, formatAmount } from './utils'
 const KDAO_CONTRACT = 'KT1JkoE42rrMBP9b2oDhbx6EUr26GcySZMUH'
 const NODE_URL = 'https://mainnet.api.tez.ie'
 
-const BATCH_SIZE = 10
+const BATCH_SIZE = 167
 const NUM_CONFIRMATIONS_REQUIRED = 1
 
 const parseCSV = (): Array<RemediationData> => {
