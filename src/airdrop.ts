@@ -8,7 +8,7 @@ import { FILENAME, formatAmount } from './utils'
 const KDAO_CONTRACT = 'KT1JkoE42rrMBP9b2oDhbx6EUr26GcySZMUH'
 const NODE_URL = 'https://mainnet.api.tez.ie'
 
-const BATCH_SIZE = 5
+const BATCH_SIZE = 20
 const NUM_CONFIRMATIONS_REQUIRED = 1
 
 const parseCSV = (): Array<RemediationData> => {
@@ -95,13 +95,13 @@ const main = async () => {
       for (let j = 0; j < batch.length; j++) {
         const drop = batch[j]
 
-        tx.withContractCall(
-          kdao.methods.transfer(
+        tx.withTransfer({
+          ...kdao.methods.transfer(
             await signer.publicKeyHash(),
             drop.address,
             drop.amount,
-          ),
-        )
+          ).toTransferParams({ gasLimit: 1040000 })
+        })
       }
 
       // Send and await confirmations
